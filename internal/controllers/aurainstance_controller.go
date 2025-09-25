@@ -174,7 +174,7 @@ func (r *AuraInstanceReconciler) reconcile(ctx context.Context, instance infrav1
 			if err != nil && !kerrors.IsNotFound(err) {
 				return instance, reconcile.Result{}, fmt.Errorf("failed to get secret: %w", err)
 			} else if err == nil {
-				if secret.OwnerReferences != nil && len(secret.OwnerReferences) > 0 {
+				if len(secret.OwnerReferences) > 0 {
 					if secret.OwnerReferences[0].UID != instance.UID {
 						return instance, reconcile.Result{}, fmt.Errorf("failed to delete secret, owner uid %s does not match", secret.OwnerReferences[0].UID)
 					}

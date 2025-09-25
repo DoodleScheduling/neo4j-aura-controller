@@ -1,6 +1,7 @@
 name: pr-actions
 
-permissions: {}
+permissions:
+  contents: read
 
 on:
   pull_request:

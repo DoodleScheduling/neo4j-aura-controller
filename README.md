@@ -7,7 +7,9 @@
 [![Coverage Status](https://coveralls.io/repos/github/DoodleScheduling/neo4j-aura-controller/badge.svg?branch=master)](https://coveralls.io/github/DoodleScheduling/neo4j-aura-controller?branch=master)
 [![license](https://img.shields.io/github/license/DoodleScheduling/neo4j-aura-controller.svg)](https://github.com/DoodleScheduling/neo4j-aura-controller/blob/master/LICENSE)
 
-## Deploy an instance
+Kubernetes controller for managing Neo4j Aura.
+
+## Quickstart
 
 ```yaml
 apiVersion: neo4j.infra.doodle.com/v1beta1
