@@ -1,0 +1,44 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: manager-role
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - neo4j.infra.doodle.com
+  resources:
+  - aurainstances
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - neo4j.infra.doodle.com
+  resources:
+  - aurainstances/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - neo4j.infra.doodle.com
+  resources:
+  - aurainstances/status
+  verbs:
+  - get
+  - patch
+  - update

@@ -1,0 +1,16 @@
+domain: doodle.com
+layout:
+- go.kubebuilder.io/v3
+projectName: neo4j-aura-controller
+repo: github.com/doodlescheduling/neo4j-aura-controller
+resources:
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: doodle.com
+  group: neo4j.infra.doodle.com
+  kind: AuraInstance
+  path: github.com/doodlescheduling/neo4j-aura-controller/api/v1beta1
+  version: v1beta1
+version: "3"

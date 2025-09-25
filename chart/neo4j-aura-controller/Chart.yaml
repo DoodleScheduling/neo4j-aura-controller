@@ -1,0 +1,15 @@
+apiVersion: v2
+appVersion: v0.0.0
+description: Neo4j Aura kubernetes controller
+home: https://github.com/DoodleScheduling/neo4j-aura-controller
+maintainers:
+- name: devops
+  email: devops@doodle.com
+keywords:
+- kubernetes-controller
+- neo4j
+- aura
+name: neo4j-aura-controller
+sources:
+- https://github.com/DoodleScheduling/neo4j-aura-controller
+version: 0.0.0
