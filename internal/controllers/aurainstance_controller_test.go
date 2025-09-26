@@ -188,29 +188,29 @@ var _ = Describe("AuraInstance controller", func() {
 		})
 	})
 
-	When("using custom secret key mapping", func() {
-		It("should reconcile successfully with custom keys", func() {
-			By("creating a secret with custom keys")
+	When("using custom clientIDKey mapping only", func() {
+		It("should reconcile with custom clientID key", func() {
+			By("creating a secret with custom clientId key")
 			ctx := context.Background()
 
-			customSecretName := "custom-secret"
-			customSecret := &corev1.Secret{
+			secretName := fmt.Sprintf("custom-id-secret-%s", rand.String(5))
+			secret := &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      customSecretName,
+					Name:      secretName,
 					Namespace: "default",
 				},
 				StringData: map[string]string{
-					"clientId":     "custom-id",
-					"clientSecret": "custom-secret-value",
+					"customClientId": "test-id",
+					"clientSecret":   "test-secret",
 				},
 			}
-			Expect(k8sClient.Create(ctx, customSecret)).Should(Succeed())
+			Expect(k8sClient.Create(ctx, secret)).Should(Succeed())
 
-			By("creating an AuraInstance with custom key mapping")
-			customInstanceName := "test-custom-keys"
-			customInstance := &v1beta1.AuraInstance{
+			By("creating an AuraInstance with custom clientIDKey mapping")
+			instanceName := fmt.Sprintf("test-custom-id-%s", rand.String(5))
+			instance := &v1beta1.AuraInstance{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      customInstanceName,
+					Name:      instanceName,
 					Namespace: "default",
 				},
 				Spec: v1beta1.AuraInstanceSpec{
@@ -218,25 +218,27 @@ var _ = Describe("AuraInstance controller", func() {
 					Region:        "us-east-1",
 					CloudProvider: v1beta1.CloudProviderAWS,
 					Neo4jVersion:  "5",
-					TenantID:      "test-tenant-custom",
+					TenantID:      fmt.Sprintf("tenant-%s", rand.String(5)),
 					Secret: v1beta1.SecretReference{
-						Name:            customSecretName,
-						ClientIDKey:     "clientId",
-						ClientSecretKey: "clientSecret",
+						Name:        secretName,
+						ClientIDKey: "customClientId",
+						// ClientSecretKey not specified, should use default "clientSecret"
 					},
 				},
 			}
-			Expect(k8sClient.Create(ctx, customInstance)).Should(Succeed())
+			Expect(k8sClient.Create(ctx, instance)).Should(Succeed())
 
-			By("verifying reconciliation succeeds with custom keys")
-			instanceLookupKey := types.NamespacedName{Name: customInstanceName, Namespace: "default"}
+			By("verifying reconciliation succeeds with custom clientID key")
+			instanceLookupKey := types.NamespacedName{Name: instanceName, Namespace: "default"}
 			reconciledInstance := &v1beta1.AuraInstance{}
 
+			// the reconciliation should succeed without "secret must contain" errors
 			Eventually(func() bool {
 				err := k8sClient.Get(ctx, instanceLookupKey, reconciledInstance)
 				if err != nil {
 					return false
 				}
+				// check that we don't get key-related errors
 				for _, condition := range reconciledInstance.Status.Conditions {
 					if condition.Type == v1beta1.ConditionReady &&
 						condition.Status == metav1.ConditionFalse &&
@@ -245,6 +247,197 @@ var _ = Describe("AuraInstance controller", func() {
 					}
 				}
 				return true
+			}, timeout, interval).Should(BeTrue())
+		})
+	})
+
+	When("using custom clientSecretKey mapping only", func() {
+		It("should reconcile with custom clientSecret key", func() {
+			By("creating a secret with custom clientSecret key")
+			ctx := context.Background()
+
+			secretName := fmt.Sprintf("custom-secret-secret-%s", rand.String(5))
+			secret := &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      secretName,
+					Namespace: "default",
+				},
+				StringData: map[string]string{
+					"clientID":           "test-id",
+					"customClientSecret": "test-secret",
+				},
+			}
+			Expect(k8sClient.Create(ctx, secret)).Should(Succeed())
+
+			By("creating an AuraInstance with custom clientSecretKey mapping")
+			instanceName := fmt.Sprintf("test-custom-secret-%s", rand.String(5))
+			instance := &v1beta1.AuraInstance{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      instanceName,
+					Namespace: "default",
+				},
+				Spec: v1beta1.AuraInstanceSpec{
+					Tier:          v1beta1.AuraInstanceTierFreeDb,
+					Region:        "eu-west-1",
+					CloudProvider: v1beta1.CloudProviderAWS,
+					Neo4jVersion:  "5",
+					TenantID:      fmt.Sprintf("tenant-%s", rand.String(5)),
+					Secret: v1beta1.SecretReference{
+						Name: secretName,
+						ClientSecretKey: "customClientSecret",
+					},
+				},
+			}
+			Expect(k8sClient.Create(ctx, instance)).Should(Succeed())
+
+			By("verifying reconciliation succeeds with custom clientSecret key")
+			instanceLookupKey := types.NamespacedName{Name: instanceName, Namespace: "default"}
+			reconciledInstance := &v1beta1.AuraInstance{}
+
+			// The reconciliation should succeed without "secret must contain" errors
+			Eventually(func() bool {
+				err := k8sClient.Get(ctx, instanceLookupKey, reconciledInstance)
+				if err != nil {
+					return false
+				}
+				// Check that we don't get key-related errors
+				for _, condition := range reconciledInstance.Status.Conditions {
+					if condition.Type == v1beta1.ConditionReady &&
+						condition.Status == metav1.ConditionFalse &&
+						strings.Contains(condition.Message, "secret must contain") {
+						return false
+					}
+				}
+				return true
+			}, timeout, interval).Should(BeTrue())
+		})
+	})
+
+	When("using both custom key mappings", func() {
+		It("should reconcile with both custom keys", func() {
+			By("creating a secret with both custom keys")
+			ctx := context.Background()
+
+			secretName := fmt.Sprintf("custom-both-secret-%s", rand.String(5))
+			secret := &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      secretName,
+					Namespace: "default",
+				},
+				StringData: map[string]string{
+					"myClientId":     "test-id",
+					"myClientSecret": "test-secret",
+				},
+			}
+			Expect(k8sClient.Create(ctx, secret)).Should(Succeed())
+
+			By("creating an AuraInstance with both custom key mappings")
+			instanceName := fmt.Sprintf("test-custom-both-%s", rand.String(5))
+			instance := &v1beta1.AuraInstance{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      instanceName,
+					Namespace: "default",
+				},
+				Spec: v1beta1.AuraInstanceSpec{
+					Tier:          v1beta1.AuraInstanceTierFreeDb,
+					Region:        "ap-southeast-1",
+					CloudProvider: v1beta1.CloudProviderGCP,
+					Neo4jVersion:  "5",
+					TenantID:      fmt.Sprintf("tenant-%s", rand.String(5)),
+					Secret: v1beta1.SecretReference{
+						Name:            secretName,
+						ClientIDKey:     "myClientId",
+						ClientSecretKey: "myClientSecret",
+					},
+				},
+			}
+			Expect(k8sClient.Create(ctx, instance)).Should(Succeed())
+
+			By("verifying reconciliation succeeds with both custom keys")
+			instanceLookupKey := types.NamespacedName{Name: instanceName, Namespace: "default"}
+			reconciledInstance := &v1beta1.AuraInstance{}
+
+			// The reconciliation should succeed without "secret must contain" errors
+			Eventually(func() bool {
+				err := k8sClient.Get(ctx, instanceLookupKey, reconciledInstance)
+				if err != nil {
+					return false
+				}
+				// Check that we don't get key-related errors
+				for _, condition := range reconciledInstance.Status.Conditions {
+					if condition.Type == v1beta1.ConditionReady &&
+						condition.Status == metav1.ConditionFalse &&
+						strings.Contains(condition.Message, "secret must contain") {
+						return false
+					}
+				}
+				return true
+			}, timeout, interval).Should(BeTrue())
+		})
+	})
+
+	When("custom key mapping points to non-existent key", func() {
+		It("should fail with appropriate error message", func() {
+			By("creating a secret without the custom key")
+			ctx := context.Background()
+
+			secretName := fmt.Sprintf("missing-key-secret-%s", rand.String(5))
+			secret := &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      secretName,
+					Namespace: "default",
+				},
+				StringData: map[string]string{
+					"clientID":     "test-id",
+					"clientSecret": "test-secret",
+				},
+			}
+			Expect(k8sClient.Create(ctx, secret)).Should(Succeed())
+
+			By("creating an AuraInstance with wrong custom key mapping")
+			instanceName := fmt.Sprintf("test-wrong-key-%s", rand.String(5))
+			instance := &v1beta1.AuraInstance{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      instanceName,
+					Namespace: "default",
+				},
+				Spec: v1beta1.AuraInstanceSpec{
+					Tier:          v1beta1.AuraInstanceTierFreeDb,
+					Region:        "us-west-2",
+					CloudProvider: v1beta1.CloudProviderAWS,
+					Neo4jVersion:  "5",
+					TenantID:      fmt.Sprintf("tenant-%s", rand.String(5)),
+					Secret: v1beta1.SecretReference{
+						Name:            secretName,
+						ClientIDKey:     "wrongClientId", // key doesn't exist in the secret
+						ClientSecretKey: "clientSecret",
+					},
+				},
+			}
+			Expect(k8sClient.Create(ctx, instance)).Should(Succeed())
+
+			By("verifying reconciliation fails with key not found error")
+			instanceLookupKey := types.NamespacedName{Name: instanceName, Namespace: "default"}
+			reconciledInstance := &v1beta1.AuraInstance{}
+
+			expectedStatus := &v1beta1.AuraInstanceStatus{
+				ObservedGeneration: 1,
+				Conditions: []metav1.Condition{
+					{
+						Type:    v1beta1.ConditionReady,
+						Status:  metav1.ConditionFalse,
+						Reason:  "ReconciliationFailed",
+						Message: "secret must contain wrongClientId and clientSecret keys",
+					},
+				},
+			}
+
+			Eventually(func() bool {
+				err := k8sClient.Get(ctx, instanceLookupKey, reconciledInstance)
+				if err != nil {
+					return false
+				}
+				return needConditions(expectedStatus.Conditions, reconciledInstance.Status.Conditions)
 			}, timeout, interval).Should(BeTrue())
 		})
 	})
