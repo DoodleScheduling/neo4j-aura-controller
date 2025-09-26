@@ -25,7 +25,6 @@ import (
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/clientcredentials"
 
-	"github.com/doodlescheduling/neo4j-aura-controller/api/v1beta1"
 	infrav1beta1 "github.com/doodlescheduling/neo4j-aura-controller/api/v1beta1"
 	auraclient "github.com/doodlescheduling/neo4j-aura-controller/pkg/aura/client"
 	"github.com/fluxcd/pkg/runtime/conditions"
@@ -67,9 +66,9 @@ type AuraInstanceReconcilerOptions struct {
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *AuraInstanceReconciler) SetupWithManager(mgr ctrl.Manager, opts AuraInstanceReconcilerOptions) error {
-	if err := mgr.GetFieldIndexer().IndexField(context.TODO(), &v1beta1.AuraInstance{}, secretIndexKey,
+	if err := mgr.GetFieldIndexer().IndexField(context.TODO(), &infrav1beta1.AuraInstance{}, secretIndexKey,
 		func(o client.Object) []string {
-			instance := o.(*v1beta1.AuraInstance)
+			instance := o.(*infrav1beta1.AuraInstance)
 			keys := []string{}
 
 			if instance.Spec.Secret.Name != "" {
