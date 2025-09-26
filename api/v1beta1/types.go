@@ -9,6 +9,13 @@ type LocalObjectReference struct {
 	Name string `json:"name,omitempty"`
 }
 
+// SecretReference extends LocalObjectReference with optional secret key mappings
+type SecretReference struct {
+	Name            string `json:"name"`
+	ClientIDKey     string `json:"clientIDKey,omitempty"`
+	ClientSecretKey string `json:"clientSecretKey,omitempty"`
+}
+
 const (
 	Finalizer             = "finalizers.doodle.com"
 	ConditionReady        = "Ready"
