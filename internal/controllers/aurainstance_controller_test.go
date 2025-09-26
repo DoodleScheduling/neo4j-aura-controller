@@ -283,7 +283,7 @@ var _ = Describe("AuraInstance controller", func() {
 					Neo4jVersion:  "5",
 					TenantID:      fmt.Sprintf("tenant-%s", rand.String(5)),
 					Secret: v1beta1.SecretReference{
-						Name: secretName,
+						Name:            secretName,
 						ClientSecretKey: "customClientSecret",
 					},
 				},
