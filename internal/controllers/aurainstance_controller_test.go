@@ -134,7 +134,7 @@ var _ = Describe("AuraInstance controller", func() {
 						Type:    v1beta1.ConditionReady,
 						Status:  metav1.ConditionFalse,
 						Reason:  "ReconciliationFailed",
-						Message: "secret must contain clientID and clientSecret",
+						Message: "secret must contain clientID and clientSecret keys",
 					},
 				},
 			}
@@ -172,7 +172,7 @@ var _ = Describe("AuraInstance controller", func() {
 						Type:    v1beta1.ConditionReady,
 						Status:  metav1.ConditionFalse,
 						Reason:  "ReconciliationFailed",
-						Message: "secret must contain clientID and clientSecret",
+						Message: "secret must contain clientID and clientSecret keys",
 					},
 				},
 			}
