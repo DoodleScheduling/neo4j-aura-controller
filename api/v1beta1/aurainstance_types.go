@@ -61,8 +61,9 @@ type AuraInstanceSpec struct {
 	TenantID string `json:"tenantID"`
 
 	// Secret is a reference to a secret containing Aura API credentials
-	// Expected keys: clientId, clientSecret
-	Secret LocalObjectReference `json:"secret"`
+	// By default expects keys: clientID, clientSecret
+	// Use clientIDKey and clientSecretKey fields to override the default keys
+	Secret SecretReference `json:"secret"`
 
 	// ConnectionSecret is a reference to a secret which will contain the connection details.
 	// By default this will be ${metadataname}-connection

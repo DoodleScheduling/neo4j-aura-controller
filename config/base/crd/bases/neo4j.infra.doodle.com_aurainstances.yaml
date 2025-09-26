@@ -73,10 +73,26 @@ spec:
               secret:
                 description: |-
                   Secret is a reference to a secret containing Aura API credentials
-                  Expected keys: clientId, clientSecret
+                  By default expects keys: clientID, clientSecret
+                  Use clientIDKey and clientSecretKey fields to override the default keys
                 properties:
                   name:
+                    description: The name of the secret
                     type: string
+                  clientIDKey:
+                    description: |-
+                      ClientIDKey is the key in the secret containing the client ID
+                      Defaults to "clientID" if not specified
+                    type: string
+                    default: "clientID"
+                  clientSecretKey:
+                    description: |-
+                      ClientSecretKey is the key in the secret containing the client secret
+                      Defaults to "clientSecret" if not specified
+                    type: string
+                    default: "clientSecret"
+                required:
+                - name
                 type: object
               suspend:
                 description: Suspend tells the controller to suspend reconciliation

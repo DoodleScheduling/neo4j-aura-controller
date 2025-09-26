@@ -115,13 +115,19 @@ func (r *AuraInstanceReconciler) httpClient(ctx context.Context, instance infrav
 	}, &secret); err != nil {
 		return nil, fmt.Errorf("failed to get secret: %w", err)
 	}
-
-	clientID := string(secret.Data["clientID"])
-	clientSecret := string(secret.Data["clientSecret"])
-	if clientID == "" || clientSecret == "" {
-		return nil, fmt.Errorf("secret must contain clientID and clientSecret")
+	clientIDKey := instance.Spec.Secret.ClientIDKey
+	if clientIDKey == "" {
+		clientIDKey = "clientID"
 	}
-
+	clientSecretKey := instance.Spec.Secret.ClientSecretKey
+	if clientSecretKey == "" {
+		clientSecretKey = "clientSecret"
+	}
+	clientID := string(secret.Data[clientIDKey])
+	clientSecret := string(secret.Data[clientSecretKey])
+	if clientID == "" || clientSecret == "" {
+		return nil, fmt.Errorf("secret must contain %s and %s keys", clientIDKey, clientSecretKey)
+	}
 	conf := &clientcredentials.Config{
 		ClientID:     clientID,
 		ClientSecret: clientSecret,

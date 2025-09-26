@@ -3,6 +3,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/doodlescheduling/neo4j-aura-controller/api/v1beta1"
@@ -75,7 +76,7 @@ var _ = Describe("AuraInstance controller", func() {
 					Neo4jVersion:  "5",
 					Tier:          "free-db",
 					CloudProvider: "gcp",
-					Secret: v1beta1.LocalObjectReference{
+					Secret: v1beta1.SecretReference{
 						Name: secretName,
 					},
 				},
@@ -183,6 +184,67 @@ var _ = Describe("AuraInstance controller", func() {
 				}
 
 				return needConditions(expectedStatus.Conditions, reconciledInstance.Status.Conditions)
+			}, timeout, interval).Should(BeTrue())
+		})
+	})
+
+	When("using custom secret key mapping", func() {
+		It("should reconcile successfully with custom keys", func() {
+			By("creating a secret with custom keys")
+			ctx := context.Background()
+
+			customSecretName := "custom-secret"
+			customSecret := &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      customSecretName,
+					Namespace: "default",
+				},
+				StringData: map[string]string{
+					"clientId":     "custom-id",
+					"clientSecret": "custom-secret-value",
+				},
+			}
+			Expect(k8sClient.Create(ctx, customSecret)).Should(Succeed())
+
+			By("creating an AuraInstance with custom key mapping")
+			customInstanceName := "test-custom-keys"
+			customInstance := &v1beta1.AuraInstance{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      customInstanceName,
+					Namespace: "default",
+				},
+				Spec: v1beta1.AuraInstanceSpec{
+					Tier:          v1beta1.AuraInstanceTierFreeDb,
+					Region:        "us-east-1",
+					CloudProvider: v1beta1.CloudProviderAWS,
+					Neo4jVersion:  "5",
+					TenantID:      "test-tenant-custom",
+					Secret: v1beta1.SecretReference{
+						Name:            customSecretName,
+						ClientIDKey:     "clientId",
+						ClientSecretKey: "clientSecret",
+					},
+				},
+			}
+			Expect(k8sClient.Create(ctx, customInstance)).Should(Succeed())
+
+			By("verifying reconciliation succeeds with custom keys")
+			instanceLookupKey := types.NamespacedName{Name: customInstanceName, Namespace: "default"}
+			reconciledInstance := &v1beta1.AuraInstance{}
+
+			Eventually(func() bool {
+				err := k8sClient.Get(ctx, instanceLookupKey, reconciledInstance)
+				if err != nil {
+					return false
+				}
+				for _, condition := range reconciledInstance.Status.Conditions {
+					if condition.Type == v1beta1.ConditionReady &&
+						condition.Status == metav1.ConditionFalse &&
+						strings.Contains(condition.Message, "secret must contain") {
+						return false
+					}
+				}
+				return true
 			}, timeout, interval).Should(BeTrue())
 		})
 	})
