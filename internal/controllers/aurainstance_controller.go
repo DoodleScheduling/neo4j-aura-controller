@@ -25,6 +25,7 @@ import (
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/clientcredentials"
 
+	"github.com/doodlescheduling/neo4j-aura-controller/api/v1beta1"
 	infrav1beta1 "github.com/doodlescheduling/neo4j-aura-controller/api/v1beta1"
 	auraclient "github.com/doodlescheduling/neo4j-aura-controller/pkg/aura/client"
 	"github.com/fluxcd/pkg/runtime/conditions"
@@ -35,8 +36,11 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -44,6 +48,8 @@ import (
 //+kubebuilder:rbac:groups=neo4j.infra.doodle.com,resources=aurainstances/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=neo4j.infra.doodle.com,resources=aurainstances/finalizers,verbs=update
 //+kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create;delete;patch;update
+
+const secretIndexKey = ".metadata.secret"
 
 // AuraInstanceReconciler reconciles an AuraInstance object
 type AuraInstanceReconciler struct {
@@ -61,10 +67,63 @@ type AuraInstanceReconcilerOptions struct {
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *AuraInstanceReconciler) SetupWithManager(mgr ctrl.Manager, opts AuraInstanceReconcilerOptions) error {
+	if err := mgr.GetFieldIndexer().IndexField(context.TODO(), &v1beta1.AuraInstance{}, secretIndexKey,
+		func(o client.Object) []string {
+			instance := o.(*v1beta1.AuraInstance)
+			keys := []string{}
+
+			if instance.Spec.Secret.Name != "" {
+				keys = []string{
+					fmt.Sprintf("%s/%s", instance.GetNamespace(), instance.Spec.Secret.Name),
+				}
+			}
+
+			return keys
+		},
+	); err != nil {
+		return err
+	}
+
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&infrav1beta1.AuraInstance{}).
+		For(&infrav1beta1.AuraInstance{}, builder.WithPredicates(
+			predicate.GenerationChangedPredicate{},
+		)).
 		WithOptions(controller.Options{MaxConcurrentReconciles: opts.MaxConcurrentReconciles}).
+		Watches(
+			&corev1.Secret{},
+			handler.EnqueueRequestsFromMapFunc(r.requestsForSecretChange),
+		).
 		Complete(r)
+}
+
+// objectKey returns client.ObjectKey for the object.
+func objectKey(object metav1.Object) client.ObjectKey {
+	return client.ObjectKey{
+		Namespace: object.GetNamespace(),
+		Name:      object.GetName(),
+	}
+}
+
+func (r *AuraInstanceReconciler) requestsForSecretChange(ctx context.Context, o client.Object) []reconcile.Request {
+	secret, ok := o.(*corev1.Secret)
+	if !ok {
+		panic(fmt.Sprintf("expected a Secret, got %T", o))
+	}
+
+	var list infrav1beta1.AuraInstanceList
+	if err := r.List(ctx, &list, client.MatchingFields{
+		secretIndexKey: objectKey(secret).String(),
+	}); err != nil {
+		return nil
+	}
+
+	var reqs []reconcile.Request
+	for _, instance := range list.Items {
+		r.Log.V(1).Info("referenced secret from a AuraInstance changed detected", "namespace", instance.GetNamespace(), "name", instance.GetName())
+		reqs = append(reqs, reconcile.Request{NamespacedName: objectKey(&instance)})
+	}
+
+	return reqs
 }
 
 func (r *AuraInstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
