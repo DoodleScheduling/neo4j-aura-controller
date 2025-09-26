@@ -11,6 +11,8 @@ Kubernetes controller for managing Neo4j Aura.
 
 ## Quickstart
 
+### Usage Example
+
 ```yaml
 apiVersion: neo4j.infra.doodle.com/v1beta1
 kind: AuraInstance
@@ -35,6 +37,36 @@ metadata:
   name: neo4j-project-admin
 type: Opaque
 ```
+### Custom Secret Key Mapping
+
+If your secret uses different key names (e.g., `clientId` instead of `clientID`), you can specify custom key mappings:
+
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: neo4j-aura-api-custom
+  namespace: default
+data:
+  clientId: <base64-encoded-client-id> 
+  clientSecret: <base64-encoded-client-secret>
+---
+apiVersion: neo4j.infra.doodle.com/v1beta1
+kind: AuraInstance
+metadata:
+  name: my-neo4j-instance
+  namespace: default
+spec:
+  tier: professional-db
+  region: eu-central-1
+  cloudProvider: aws
+  neo4jVersion: "5"
+  tenantID: 928f3731-1111-5ffd-a2f7-3602aafb304b
+  memory: 8GB
+  secret:
+    name: neo4j-aura-api-custom
+    clientIDKey: clientId         # Map to the actual key in the secret
+    clientSecretKey: clientSecret # Map to the actual key in the secret
 
 ## Observe reconciliation
 
@@ -86,66 +118,4 @@ The controller can be configured using cmd args:
       --token-url string                          The OAuth2 token endpoint URL for neo4j Aura. Use for the client credentials flow. (default "https://api.neo4j.io/oauth/token")
       --watch-all-namespaces                      Watch for resources in all namespaces, if set to false it will only watch the runtime namespace. (default true)
       --watch-label-selector string               Watch for resources with matching labels e.g. 'sharding.fluxcd.io/shard=shard1'.
-```
-
-## Usage
-
-### Basic Example
-
-```yaml
-apiVersion: v1
-kind: Secret
-metadata:
-  name: neo4j-aura-api
-  namespace: default
-data:
-  clientID: <base64-encoded-client-id>
-  clientSecret: <base64-encoded-client-secret>
----
-apiVersion: neo4j.infra.doodle.com/v1beta1
-kind: AuraInstance
-metadata:
-  name: my-neo4j-instance
-  namespace: default
-spec:
-  tier: professional-db
-  region: eu-central-1
-  cloudProvider: aws
-  neo4jVersion: "5"
-  tenantID: 928f3731-1111-5ffd-a2f7-3602aafb304b
-  memory: 8GB
-  secret:
-    name: neo4j-aura-api
-```
-
-### Custom Secret Key Mapping
-
-If your secret uses different key names (e.g., `clientId` instead of `clientID`), you can specify custom key mappings:
-
-```yaml
-apiVersion: v1
-kind: Secret
-metadata:
-  name: neo4j-aura-api-custom
-  namespace: default
-data:
-  clientId: <base64-encoded-client-id> 
-  clientSecret: <base64-encoded-client-secret>
----
-apiVersion: neo4j.infra.doodle.com/v1beta1
-kind: AuraInstance
-metadata:
-  name: my-neo4j-instance
-  namespace: default
-spec:
-  tier: professional-db
-  region: eu-central-1
-  cloudProvider: aws
-  neo4jVersion: "5"
-  tenantID: 928f3731-1111-5ffd-a2f7-3602aafb304b
-  memory: 8GB
-  secret:
-    name: neo4j-aura-api-custom
-    clientIDKey: clientId         # Map to the actual key in the secret
-    clientSecretKey: clientSecret # Map to the actual key in the secret
 ```
