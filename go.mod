@@ -8,7 +8,7 @@ require (
 	github.com/oapi-codegen/runtime v1.1.2
 	github.com/onsi/ginkgo/v2 v2.23.3
 	github.com/onsi/gomega v1.37.0
-	github.com/spf13/pflag v1.0.6
+	github.com/spf13/pflag v1.0.10
 	github.com/tj/assert v0.0.3
 	golang.org/x/oauth2 v0.29.0
 	k8s.io/api v0.32.3
