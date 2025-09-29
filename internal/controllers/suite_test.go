@@ -1,5 +1,5 @@
 /*
-Copyright 2022 Doodle.
+Copyright 2025 Doodle.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@ package controllers
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"net/http"
 	"path/filepath"
@@ -26,7 +27,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	"github.com/doodlescheduling/neo4j-aura-controller/api/v1beta1"
-	infrav1beta1 "github.com/doodlescheduling/neo4j-aura-controller/api/v1beta1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -87,15 +87,12 @@ var _ = BeforeSuite(func() {
 	})
 	Expect(err).ToNot(HaveOccurred())
 
-	httpClientProvider := func(ctx context.Context, instance infrav1beta1.AuraInstance, k8sClient client.Client) (*http.Client, error) {
-		return DefaultHTTPClientProvider(ctx, instance, "https://dummy-endpoint", httpClient, k8sClient)
-	}
-
 	err = (&AuraInstanceReconciler{
-		HTTPClientProvider: httpClientProvider,
-		Client:             k8sManager.GetClient(),
-		Log:                ctrl.Log.WithName("controllers").WithName("AuraInstane"),
-		Recorder:           k8sManager.GetEventRecorderFor("AuraInstane"),
+		HTTPClient: httpClient,
+		TokenURL:   "https://token-endpoint",
+		Client:     k8sManager.GetClient(),
+		Log:        ctrl.Log.WithName("controllers").WithName("AuraInstane"),
+		Recorder:   k8sManager.GetEventRecorderFor("AuraInstane"),
 	}).SetupWithManager(k8sManager, AuraInstanceReconcilerOptions{})
 	Expect(err).ToNot(HaveOccurred())
 
@@ -117,35 +114,55 @@ type mockTransport struct {
 }
 
 func (m *mockTransport) RoundTrip(r *http.Request) (*http.Response, error) {
+	if r.Host == "token-endpoint" {
+		return &http.Response{
+			StatusCode: 200,
+			Body:       io.NopCloser(strings.NewReader(`{"access_token": "token", "expires_in": 3600}`)),
+		}, nil
+
+	}
+
 	return &http.Response{
-		StatusCode: 200,
-		Body:       io.NopCloser(strings.NewReader(``)),
+		StatusCode: 500,
+		Body:       io.NopCloser(strings.NewReader(`{"error":"error"}`)),
 	}, nil
 }
 
-func needConditions(expected []metav1.Condition, current []metav1.Condition) bool {
+func needsExactConditions(expected []metav1.Condition, current []metav1.Condition) error {
+	var expectedConditions []string
+	var currentConditions []string
+
 	for _, expectedCondition := range expected {
+		expectedConditions = append(expectedConditions, expectedCondition.Type)
 		var hasCondition bool
 		for _, condition := range current {
 			if expectedCondition.Type == condition.Type {
 				hasCondition = true
 
 				if expectedCondition.Status != condition.Status {
-					return false
+					return fmt.Errorf("condition %s does not match expected status %s, current status=%s; current conditions=%#v", expectedCondition.Type, expectedCondition.Status, condition.Status, current)
 				}
 				if expectedCondition.Reason != condition.Reason {
-					return false
+					return fmt.Errorf("condition %s does not match expected reason %s, current reason=%s; current conditions=%#v", expectedCondition.Type, expectedCondition.Reason, condition.Reason, current)
 				}
 				if expectedCondition.Message != condition.Message {
-					return false
+					return fmt.Errorf("condition %s does not match expected message %s, current status=%s; current conditions=%#v", expectedCondition.Type, expectedCondition.Message, condition.Message, current)
 				}
 			}
 		}
 
 		if !hasCondition {
-			return false
+			return fmt.Errorf("missing condition %s", expectedCondition.Type)
 		}
 	}
 
-	return true
+	for _, condition := range current {
+		currentConditions = append(currentConditions, condition.Type)
+	}
+
+	if len(expectedConditions) != len(currentConditions) {
+		return fmt.Errorf("expected conditions %#v do not match, current conditions=%#v", expectedConditions, currentConditions)
+	}
+
+	return nil
 }

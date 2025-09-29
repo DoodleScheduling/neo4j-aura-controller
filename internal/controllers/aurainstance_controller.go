@@ -1,5 +1,5 @@
 /*
-Copyright 2022 Doodle.
+Copyright 2025 Doodle.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -35,11 +35,8 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -48,18 +45,15 @@ import (
 //+kubebuilder:rbac:groups=neo4j.infra.doodle.com,resources=aurainstances/finalizers,verbs=update
 //+kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create;delete;patch;update
 
-const secretIndexKey = ".metadata.secret"
-
 // AuraInstanceReconciler reconciles an AuraInstance object
 type AuraInstanceReconciler struct {
 	client.Client
-	HTTPClientProvider httpClientProvider
-	BaseURL            string
-	Log                logr.Logger
-	Recorder           record.EventRecorder
+	TokenURL   string
+	BaseURL    string
+	HTTPClient *http.Client
+	Log        logr.Logger
+	Recorder   record.EventRecorder
 }
-
-type httpClientProvider func(ctx context.Context, instance infrav1beta1.AuraInstance, k8sClient client.Client) (*http.Client, error)
 
 type AuraInstanceReconcilerOptions struct {
 	MaxConcurrentReconciles int
@@ -67,63 +61,10 @@ type AuraInstanceReconcilerOptions struct {
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *AuraInstanceReconciler) SetupWithManager(mgr ctrl.Manager, opts AuraInstanceReconcilerOptions) error {
-	if err := mgr.GetFieldIndexer().IndexField(context.TODO(), &infrav1beta1.AuraInstance{}, secretIndexKey,
-		func(o client.Object) []string {
-			instance := o.(*infrav1beta1.AuraInstance)
-			keys := []string{}
-
-			if instance.Spec.Secret.Name != "" {
-				keys = []string{
-					fmt.Sprintf("%s/%s", instance.GetNamespace(), instance.Spec.Secret.Name),
-				}
-			}
-
-			return keys
-		},
-	); err != nil {
-		return err
-	}
-
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&infrav1beta1.AuraInstance{}, builder.WithPredicates(
-			predicate.GenerationChangedPredicate{},
-		)).
+		For(&infrav1beta1.AuraInstance{}).
 		WithOptions(controller.Options{MaxConcurrentReconciles: opts.MaxConcurrentReconciles}).
-		Watches(
-			&corev1.Secret{},
-			handler.EnqueueRequestsFromMapFunc(r.requestsForSecretChange),
-		).
 		Complete(r)
-}
-
-// objectKey returns client.ObjectKey for the object.
-func objectKey(object metav1.Object) client.ObjectKey {
-	return client.ObjectKey{
-		Namespace: object.GetNamespace(),
-		Name:      object.GetName(),
-	}
-}
-
-func (r *AuraInstanceReconciler) requestsForSecretChange(ctx context.Context, o client.Object) []reconcile.Request {
-	secret, ok := o.(*corev1.Secret)
-	if !ok {
-		panic(fmt.Sprintf("expected a Secret, got %T", o))
-	}
-
-	var list infrav1beta1.AuraInstanceList
-	if err := r.List(ctx, &list, client.MatchingFields{
-		secretIndexKey: objectKey(secret).String(),
-	}); err != nil {
-		return nil
-	}
-
-	var reqs []reconcile.Request
-	for _, instance := range list.Items {
-		r.Log.V(1).Info("referenced secret from a AuraInstance changed detected", "namespace", instance.GetNamespace(), "name", instance.GetName())
-		reqs = append(reqs, reconcile.Request{NamespacedName: objectKey(&instance)})
-	}
-
-	return reqs
 }
 
 func (r *AuraInstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
@@ -166,9 +107,9 @@ func (r *AuraInstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	return result, err
 }
 
-func DefaultHTTPClientProvider(ctx context.Context, instance infrav1beta1.AuraInstance, tokenURL string, httpClient *http.Client, k8sClient client.Client) (*http.Client, error) {
+func (r *AuraInstanceReconciler) httpClient(ctx context.Context, instance infrav1beta1.AuraInstance) (*http.Client, error) {
 	var secret corev1.Secret
-	if err := k8sClient.Get(ctx, types.NamespacedName{
+	if err := r.Get(ctx, types.NamespacedName{
 		Name:      instance.Spec.Secret.Name,
 		Namespace: instance.Namespace,
 	}, &secret); err != nil {
@@ -190,24 +131,24 @@ func DefaultHTTPClientProvider(ctx context.Context, instance infrav1beta1.AuraIn
 	conf := &clientcredentials.Config{
 		ClientID:     clientID,
 		ClientSecret: clientSecret,
-		TokenURL:     tokenURL,
+		TokenURL:     r.TokenURL,
 	}
 
-	ctx = context.WithValue(ctx, oauth2.HTTPClient, httpClient)
+	ctx = context.WithValue(ctx, oauth2.HTTPClient, r.HTTPClient)
 	tokenSource := conf.TokenSource(ctx)
 	transport := &oauth2.Transport{
 		Source: tokenSource,
-		Base:   httpClient.Transport,
+		Base:   r.HTTPClient.Transport,
 	}
 
 	return &http.Client{
 		Transport: transport,
-		Timeout:   httpClient.Timeout,
+		Timeout:   r.HTTPClient.Timeout,
 	}, nil
 }
 
 func (r *AuraInstanceReconciler) reconcile(ctx context.Context, instance infrav1beta1.AuraInstance, logger logr.Logger) (infrav1beta1.AuraInstance, ctrl.Result, error) {
-	httpClient, err := r.HTTPClientProvider(ctx, instance, r.Client)
+	httpClient, err := r.httpClient(ctx, instance)
 	if err != nil {
 		return instance, reconcile.Result{}, err
 	}
