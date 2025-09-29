@@ -119,7 +119,6 @@ func (m *mockTransport) RoundTrip(r *http.Request) (*http.Response, error) {
 			StatusCode: 200,
 			Body:       io.NopCloser(strings.NewReader(`{"access_token": "token", "expires_in": 3600}`)),
 		}, nil
-
 	}
 
 	return &http.Response{
