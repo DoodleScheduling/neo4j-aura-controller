@@ -17,7 +17,6 @@ type SecretReference struct {
 }
 
 const (
-	Finalizer             = "finalizers.doodle.com"
 	ConditionReady        = "Ready"
 	ConditionReconciling  = "Reconciling"
 	ConditionScaledToZero = "ScaledToZero"
