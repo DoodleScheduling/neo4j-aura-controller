@@ -71,7 +71,7 @@ spec:
 
 ## Observe reconciliation
 
-Each resource reports various conditions in `.status.condtions` which will give the necessary insight about the 
+Each resource reports various conditions in `.status.conditions` which will give the necessary insight about the 
 current state of the resource.
 
 ```yaml
