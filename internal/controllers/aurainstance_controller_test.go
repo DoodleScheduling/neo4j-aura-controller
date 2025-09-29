@@ -3,7 +3,6 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/doodlescheduling/neo4j-aura-controller/api/v1beta1"
@@ -21,7 +20,7 @@ var _ = Describe("AuraInstance controller", func() {
 		interval = time.Millisecond * 600
 	)
 
-	When("reconciling a suspendended AuraInstance", func() {
+	When("reconciling a suspended AuraInstance", func() {
 		instanceName := fmt.Sprintf("cluster-%s", rand.String(5))
 
 		It("should not update the status", func() {
@@ -60,7 +59,6 @@ var _ = Describe("AuraInstance controller", func() {
 
 	instanceName := fmt.Sprintf("instance-%s", rand.String(5))
 	secretName := fmt.Sprintf("secret-%s", rand.String(5))
-
 	When("it can't find the referenced secret with credentials", func() {
 		It("should update the status", func() {
 			By("creating a new AuraInstance")
@@ -99,14 +97,13 @@ var _ = Describe("AuraInstance controller", func() {
 				},
 			}
 
-			Eventually(func() bool {
+			Eventually(func() error {
 				err := k8sClient.Get(ctx, instanceLookupKey, reconciledInstance)
 				if err != nil {
-					return false
+					return err
 				}
-
-				return needConditions(expectedStatus.Conditions, reconciledInstance.Status.Conditions)
-			}, timeout, interval).Should(BeTrue())
+				return needsExactConditions(expectedStatus.Conditions, reconciledInstance.Status.Conditions)
+			}, timeout, interval).Should(Not(HaveOccurred()))
 		})
 	})
 
@@ -139,14 +136,13 @@ var _ = Describe("AuraInstance controller", func() {
 				},
 			}
 
-			Eventually(func() bool {
+			Eventually(func() error {
 				err := k8sClient.Get(ctx, instanceLookupKey, reconciledInstance)
 				if err != nil {
-					return false
+					return err
 				}
-
-				return needConditions(expectedStatus.Conditions, reconciledInstance.Status.Conditions)
-			}, timeout, interval).Should(BeTrue())
+				return needsExactConditions(expectedStatus.Conditions, reconciledInstance.Status.Conditions)
+			}, timeout, interval).Should(Not(HaveOccurred()))
 		})
 	})
 
@@ -177,14 +173,13 @@ var _ = Describe("AuraInstance controller", func() {
 				},
 			}
 
-			Eventually(func() bool {
+			Eventually(func() error {
 				err := k8sClient.Get(ctx, instanceLookupKey, reconciledInstance)
 				if err != nil {
-					return false
+					return err
 				}
-
-				return needConditions(expectedStatus.Conditions, reconciledInstance.Status.Conditions)
-			}, timeout, interval).Should(BeTrue())
+				return needsExactConditions(expectedStatus.Conditions, reconciledInstance.Status.Conditions)
+			}, timeout, interval).Should(Not(HaveOccurred()))
 		})
 	})
 
@@ -233,21 +228,25 @@ var _ = Describe("AuraInstance controller", func() {
 			reconciledInstance := &v1beta1.AuraInstance{}
 
 			// the reconciliation should succeed without "secret must contain" errors
-			Eventually(func() bool {
+			expectedStatus := &v1beta1.AuraInstanceStatus{
+				ObservedGeneration: 1,
+				Conditions: []metav1.Condition{
+					{
+						Type:    v1beta1.ConditionReady,
+						Status:  metav1.ConditionFalse,
+						Reason:  "ReconciliationFailed",
+						Message: `failed to get instance list, request failed with code 500 - {"error":"error"}`,
+					},
+				},
+			}
+
+			Eventually(func() error {
 				err := k8sClient.Get(ctx, instanceLookupKey, reconciledInstance)
 				if err != nil {
-					return false
+					return err
 				}
-				// check that we don't get key-related errors
-				for _, condition := range reconciledInstance.Status.Conditions {
-					if condition.Type == v1beta1.ConditionReady &&
-						condition.Status == metav1.ConditionFalse &&
-						strings.Contains(condition.Message, "secret must contain") {
-						return false
-					}
-				}
-				return true
-			}, timeout, interval).Should(BeTrue())
+				return needsExactConditions(expectedStatus.Conditions, reconciledInstance.Status.Conditions)
+			}, timeout, interval).Should(Not(HaveOccurred()))
 		})
 	})
 
@@ -295,21 +294,25 @@ var _ = Describe("AuraInstance controller", func() {
 			reconciledInstance := &v1beta1.AuraInstance{}
 
 			// The reconciliation should succeed without "secret must contain" errors
-			Eventually(func() bool {
+			expectedStatus := &v1beta1.AuraInstanceStatus{
+				ObservedGeneration: 1,
+				Conditions: []metav1.Condition{
+					{
+						Type:    v1beta1.ConditionReady,
+						Status:  metav1.ConditionFalse,
+						Reason:  "ReconciliationFailed",
+						Message: `failed to get instance list, request failed with code 500 - {"error":"error"}`,
+					},
+				},
+			}
+
+			Eventually(func() error {
 				err := k8sClient.Get(ctx, instanceLookupKey, reconciledInstance)
 				if err != nil {
-					return false
+					return err
 				}
-				// Check that we don't get key-related errors
-				for _, condition := range reconciledInstance.Status.Conditions {
-					if condition.Type == v1beta1.ConditionReady &&
-						condition.Status == metav1.ConditionFalse &&
-						strings.Contains(condition.Message, "secret must contain") {
-						return false
-					}
-				}
-				return true
-			}, timeout, interval).Should(BeTrue())
+				return needsExactConditions(expectedStatus.Conditions, reconciledInstance.Status.Conditions)
+			}, timeout, interval).Should(Not(HaveOccurred()))
 		})
 	})
 
@@ -357,22 +360,25 @@ var _ = Describe("AuraInstance controller", func() {
 			instanceLookupKey := types.NamespacedName{Name: instanceName, Namespace: "default"}
 			reconciledInstance := &v1beta1.AuraInstance{}
 
-			// The reconciliation should succeed without "secret must contain" errors
-			Eventually(func() bool {
+			expectedStatus := &v1beta1.AuraInstanceStatus{
+				ObservedGeneration: 1,
+				Conditions: []metav1.Condition{
+					{
+						Type:    v1beta1.ConditionReady,
+						Status:  metav1.ConditionFalse,
+						Reason:  "ReconciliationFailed",
+						Message: `failed to get instance list, request failed with code 500 - {"error":"error"}`,
+					},
+				},
+			}
+
+			Eventually(func() error {
 				err := k8sClient.Get(ctx, instanceLookupKey, reconciledInstance)
 				if err != nil {
-					return false
+					return err
 				}
-				// Check that we don't get key-related errors
-				for _, condition := range reconciledInstance.Status.Conditions {
-					if condition.Type == v1beta1.ConditionReady &&
-						condition.Status == metav1.ConditionFalse &&
-						strings.Contains(condition.Message, "secret must contain") {
-						return false
-					}
-				}
-				return true
-			}, timeout, interval).Should(BeTrue())
+				return needsExactConditions(expectedStatus.Conditions, reconciledInstance.Status.Conditions)
+			}, timeout, interval).Should(Not(HaveOccurred()))
 		})
 	})
 
@@ -432,13 +438,50 @@ var _ = Describe("AuraInstance controller", func() {
 				},
 			}
 
-			Eventually(func() bool {
+			Eventually(func() error {
 				err := k8sClient.Get(ctx, instanceLookupKey, reconciledInstance)
 				if err != nil {
-					return false
+					return err
 				}
-				return needConditions(expectedStatus.Conditions, reconciledInstance.Status.Conditions)
-			}, timeout, interval).Should(BeTrue())
+				return needsExactConditions(expectedStatus.Conditions, reconciledInstance.Status.Conditions)
+			}, timeout, interval).Should(Not(HaveOccurred()))
+		})
+	})
+
+	When("it attempts to reconcile a valid resource spec", func() {
+		It("should update the status", func() {
+			By("creating a secret")
+			ctx := context.Background()
+
+			var secret corev1.Secret
+			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: secretName, Namespace: "default"}, &secret)).Should(Succeed())
+
+			secret.StringData = map[string]string{"clientSecret": "secret"}
+			Expect(k8sClient.Update(ctx, &secret)).Should(Succeed())
+
+			By("waiting for the reconciliation")
+			instanceLookupKey := types.NamespacedName{Name: instanceName, Namespace: "default"}
+			reconciledInstance := &v1beta1.AuraInstance{}
+
+			expectedStatus := &v1beta1.AuraInstanceStatus{
+				ObservedGeneration: 1,
+				Conditions: []metav1.Condition{
+					{
+						Type:    v1beta1.ConditionReady,
+						Status:  metav1.ConditionFalse,
+						Reason:  "ReconciliationFailed",
+						Message: `failed to get instance list, request failed with code 500 - {"error":"error"}`,
+					},
+				},
+			}
+
+			Eventually(func() error {
+				err := k8sClient.Get(ctx, instanceLookupKey, reconciledInstance)
+				if err != nil {
+					return err
+				}
+				return needsExactConditions(expectedStatus.Conditions, reconciledInstance.Status.Conditions)
+			}, timeout, interval).Should(Not(HaveOccurred()))
 		})
 	})
 })
