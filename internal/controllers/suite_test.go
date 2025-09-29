@@ -26,6 +26,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	"github.com/doodlescheduling/neo4j-aura-controller/api/v1beta1"
+	infrav1beta1 "github.com/doodlescheduling/neo4j-aura-controller/api/v1beta1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -86,11 +87,15 @@ var _ = BeforeSuite(func() {
 	})
 	Expect(err).ToNot(HaveOccurred())
 
+	httpClientProvider := func(ctx context.Context, instance infrav1beta1.AuraInstance, k8sClient client.Client) (*http.Client, error) {
+		return DefaultHTTPClientProvider(ctx, instance, "https://dummy-endpoint", httpClient, k8sClient)
+	}
+
 	err = (&AuraInstanceReconciler{
-		HTTPClient: httpClient,
-		Client:     k8sManager.GetClient(),
-		Log:        ctrl.Log.WithName("controllers").WithName("AuraInstane"),
-		Recorder:   k8sManager.GetEventRecorderFor("AuraInstane"),
+		HTTPClientProvider: httpClientProvider,
+		Client:             k8sManager.GetClient(),
+		Log:                ctrl.Log.WithName("controllers").WithName("AuraInstane"),
+		Recorder:           k8sManager.GetEventRecorderFor("AuraInstane"),
 	}).SetupWithManager(k8sManager, AuraInstanceReconcilerOptions{})
 	Expect(err).ToNot(HaveOccurred())
 

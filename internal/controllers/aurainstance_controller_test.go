@@ -188,6 +188,44 @@ var _ = Describe("AuraInstance controller", func() {
 		})
 	})
 
+	When("it can't find the clientSecret from the secret", func() {
+		It("should update the status", func() {
+			By("creating a secret")
+			ctx := context.Background()
+
+			var secret corev1.Secret
+			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: secretName, Namespace: "default"}, &secret)).Should(Succeed())
+
+			secret.StringData = map[string]string{"clientSecret": "secret"}
+			Expect(k8sClient.Update(ctx, &secret)).Should(Succeed())
+
+			By("waiting for the reconciliation")
+			instanceLookupKey := types.NamespacedName{Name: instanceName, Namespace: "default"}
+			reconciledInstance := &v1beta1.AuraInstance{}
+
+			expectedStatus := &v1beta1.AuraInstanceStatus{
+				ObservedGeneration: 1,
+				Conditions: []metav1.Condition{
+					{
+						Type:    v1beta1.ConditionReady,
+						Status:  metav1.ConditionFalse,
+						Reason:  "ReconciliationFailed",
+						Message: "xx",
+					},
+				},
+			}
+
+			Eventually(func() bool {
+				err := k8sClient.Get(ctx, instanceLookupKey, reconciledInstance)
+				if err != nil {
+					return false
+				}
+
+				return needConditions(expectedStatus.Conditions, reconciledInstance.Status.Conditions)
+			}, timeout, interval).Should(BeTrue())
+		})
+	})
+
 	When("using custom clientIDKey mapping only", func() {
 		It("should reconcile with custom clientID key", func() {
 			By("creating a secret with custom clientId key")

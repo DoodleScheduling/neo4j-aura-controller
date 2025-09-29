@@ -53,12 +53,13 @@ const secretIndexKey = ".metadata.secret"
 // AuraInstanceReconciler reconciles an AuraInstance object
 type AuraInstanceReconciler struct {
 	client.Client
-	TokenURL   string
-	BaseURL    string
-	HTTPClient *http.Client
-	Log        logr.Logger
-	Recorder   record.EventRecorder
+	HTTPClientProvider httpClientProvider
+	BaseURL            string
+	Log                logr.Logger
+	Recorder           record.EventRecorder
 }
+
+type httpClientProvider func(ctx context.Context, instance infrav1beta1.AuraInstance, k8sClient client.Client) (*http.Client, error)
 
 type AuraInstanceReconcilerOptions struct {
 	MaxConcurrentReconciles int
@@ -165,9 +166,9 @@ func (r *AuraInstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	return result, err
 }
 
-func (r *AuraInstanceReconciler) httpClient(ctx context.Context, instance infrav1beta1.AuraInstance) (*http.Client, error) {
+func DefaultHTTPClientProvider(ctx context.Context, instance infrav1beta1.AuraInstance, tokenURL string, httpClient *http.Client, k8sClient client.Client) (*http.Client, error) {
 	var secret corev1.Secret
-	if err := r.Get(ctx, types.NamespacedName{
+	if err := k8sClient.Get(ctx, types.NamespacedName{
 		Name:      instance.Spec.Secret.Name,
 		Namespace: instance.Namespace,
 	}, &secret); err != nil {
@@ -189,24 +190,24 @@ func (r *AuraInstanceReconciler) httpClient(ctx context.Context, instance infrav
 	conf := &clientcredentials.Config{
 		ClientID:     clientID,
 		ClientSecret: clientSecret,
-		TokenURL:     r.TokenURL,
+		TokenURL:     tokenURL,
 	}
 
-	ctx = context.WithValue(ctx, oauth2.HTTPClient, r.HTTPClient)
+	ctx = context.WithValue(ctx, oauth2.HTTPClient, httpClient)
 	tokenSource := conf.TokenSource(ctx)
 	transport := &oauth2.Transport{
 		Source: tokenSource,
-		Base:   r.HTTPClient.Transport,
+		Base:   httpClient.Transport,
 	}
 
 	return &http.Client{
 		Transport: transport,
-		Timeout:   r.HTTPClient.Timeout,
+		Timeout:   httpClient.Timeout,
 	}, nil
 }
 
 func (r *AuraInstanceReconciler) reconcile(ctx context.Context, instance infrav1beta1.AuraInstance, logger logr.Logger) (infrav1beta1.AuraInstance, ctrl.Result, error) {
-	httpClient, err := r.httpClient(ctx, instance)
+	httpClient, err := r.HTTPClientProvider(ctx, instance, r.Client)
 	if err != nil {
 		return instance, reconcile.Result{}, err
 	}

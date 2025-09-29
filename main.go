@@ -17,6 +17,7 @@ limitations under the License.
 package main
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"os"
@@ -162,13 +163,16 @@ func main() {
 		Transport: middleware.NewLogger(logger, http.DefaultTransport),
 	}
 
+	httpClientProvider := func(ctx context.Context, instance infrav1beta1.AuraInstance, k8sClient ctrlclient.Client) (*http.Client, error) {
+		return controllers.DefaultHTTPClientProvider(ctx, instance, tokenURL, httpClient, k8sClient)
+	}
+
 	AuraInstanceReconciler := &controllers.AuraInstanceReconciler{
-		Client:     mgr.GetClient(),
-		HTTPClient: httpClient,
-		BaseURL:    baseURL,
-		TokenURL:   tokenURL,
-		Log:        logger,
-		Recorder:   mgr.GetEventRecorderFor("AuraInstance"),
+		Client:             mgr.GetClient(),
+		HTTPClientProvider: httpClientProvider,
+		BaseURL:            baseURL,
+		Log:                logger,
+		Recorder:           mgr.GetEventRecorderFor("AuraInstance"),
 	}
 
 	if err = AuraInstanceReconciler.SetupWithManager(mgr, controllers.AuraInstanceReconcilerOptions{
