@@ -37,7 +37,7 @@ metadata:
   name: neo4j-project-admin
 type: Opaque
 ```
-### Custom Secret Key Mapping
+#### Custom Secret Key Mapping
 
 If your secret uses different key names (e.g., `clientId` instead of `clientID`), you can specify custom key mappings:
 
@@ -67,6 +67,7 @@ spec:
     name: neo4j-aura-api-custom
     clientIDKey: clientId         # Map to the actual key in the secret
     clientSecretKey: clientSecret # Map to the actual key in the secret
+```
 
 ## Observe reconciliation
 
