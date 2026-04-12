@@ -5,7 +5,7 @@ go 1.25.0
 require (
 	github.com/fluxcd/pkg/runtime v0.91.0
 	github.com/go-logr/logr v1.4.3
-	github.com/oapi-codegen/runtime v1.3.1
+	github.com/oapi-codegen/runtime v1.4.0
 	github.com/onsi/ginkgo/v2 v2.28.1
 	github.com/onsi/gomega v1.39.1
 	github.com/spf13/pflag v1.0.10
@@ -96,7 +96,7 @@ require (
 	golang.org/x/sys v0.40.0 // indirect
 	golang.org/x/term v0.39.0 // indirect
 	golang.org/x/text v0.33.0 // indirect
-	golang.org/x/time v0.13.0 // indirect
+	golang.org/x/time v0.14.0 // indirect
 	golang.org/x/tools v0.41.0 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.5.0 // indirect
 	google.golang.org/protobuf v1.36.8 // indirect
