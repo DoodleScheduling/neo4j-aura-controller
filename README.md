@@ -2,7 +2,6 @@
 
 [![release](https://img.shields.io/github/release/DoodleScheduling/neo4j-aura-controller/all.svg)](https://github.com/DoodleScheduling/neo4j-aura-controller/releases)
 [![release](https://github.com/DoodleScheduling/neo4j-aura-controller/actions/workflows/release.yaml/badge.svg)](https://github.com/DoodleScheduling/neo4j-aura-controller/actions/workflows/release.yaml)
-[![report](https://goreportcard.com/badge/github.com/DoodleScheduling/neo4j-aura-controller)](https://goreportcard.com/report/github.com/DoodleScheduling/neo4j-aura-controller)
 [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/DoodleScheduling/neo4j-aura-controller/badge)](https://api.securityscorecards.dev/projects/github.com/DoodleScheduling/neo4j-aura-controller)
 [![Coverage Status](https://coveralls.io/repos/github/DoodleScheduling/neo4j-aura-controller/badge.svg?branch=master)](https://coveralls.io/github/DoodleScheduling/neo4j-aura-controller?branch=master)
 [![license](https://img.shields.io/github/license/DoodleScheduling/neo4j-aura-controller.svg)](https://github.com/DoodleScheduling/neo4j-aura-controller/blob/master/LICENSE)

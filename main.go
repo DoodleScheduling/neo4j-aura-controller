@@ -168,7 +168,7 @@ func main() {
 		BaseURL:    baseURL,
 		TokenURL:   tokenURL,
 		Log:        logger,
-		Recorder:   mgr.GetEventRecorderFor("AuraInstance"),
+		Recorder:   mgr.GetEventRecorder("AuraInstance"),
 	}
 
 	if err = AuraInstanceReconciler.SetupWithManager(mgr, controllers.AuraInstanceReconcilerOptions{

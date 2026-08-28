@@ -92,7 +92,7 @@ var _ = BeforeSuite(func() {
 		TokenURL:   "https://token-endpoint",
 		Client:     k8sManager.GetClient(),
 		Log:        ctrl.Log.WithName("controllers").WithName("AuraInstane"),
-		Recorder:   k8sManager.GetEventRecorderFor("AuraInstane"),
+		Recorder:   k8sManager.GetEventRecorder("AuraInstane"),
 	}).SetupWithManager(k8sManager, AuraInstanceReconcilerOptions{})
 	Expect(err).ToNot(HaveOccurred())
 

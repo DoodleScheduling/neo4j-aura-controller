@@ -119,7 +119,7 @@ type AuraInstanceList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&AuraInstance{}, &AuraInstanceList{})
+	objectTypes = append(objectTypes, &AuraInstance{}, &AuraInstanceList{})
 }
 
 func AuraInstanceReconciling(set AuraInstance, status metav1.ConditionStatus, reason, message string) AuraInstance {
