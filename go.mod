@@ -4,7 +4,7 @@ go 1.26.0
 
 require (
 	github.com/fluxcd/pkg/runtime v0.111.0
-	github.com/go-logr/logr v1.4.3
+	github.com/go-logr/logr v1.4.4
 	github.com/oapi-codegen/runtime v1.7.0
 	github.com/onsi/ginkgo/v2 v2.28.1
 	github.com/onsi/gomega v1.42.1
