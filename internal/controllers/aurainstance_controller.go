@@ -156,7 +156,7 @@ func (r *AuraInstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	// Update status after reconciliation
 	if err := r.patchStatus(ctx, &instance); err != nil {
 		logger.Error(err, "unable to update status after reconciliation")
-		return ctrl.Result{Requeue: true}, err
+		return ctrl.Result{}, err
 	}
 
 	if err == nil && instance.Spec.Interval != nil {
@@ -253,7 +253,7 @@ func (r *AuraInstanceReconciler) reconcile(ctx context.Context, instance infrav1
 			instance.Status.InstanceID = ""
 			instance.Status.ConnectionSecret = ""
 
-			return instance, reconcile.Result{Requeue: true}, nil
+			return instance, reconcile.Result{RequeueAfter: time.Millisecond}, nil
 		}
 
 		if auraInstance.StatusCode() != http.StatusOK {
@@ -317,7 +317,7 @@ func (r *AuraInstanceReconciler) reconcile(ctx context.Context, instance infrav1
 	for _, remoteInstance := range auraInstances.JSON200.Data {
 		if instance.Name == remoteInstance.Name {
 			instance.Status.InstanceID = remoteInstance.Id
-			return instance, reconcile.Result{Requeue: true}, nil
+			return instance, reconcile.Result{RequeueAfter: time.Millisecond}, nil
 		}
 	}
 
