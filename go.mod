@@ -3,7 +3,7 @@ module github.com/doodlescheduling/neo4j-aura-controller
 go 1.26.0
 
 require (
-	github.com/fluxcd/pkg/runtime v0.113.0
+	github.com/fluxcd/pkg/runtime v0.114.0
 	github.com/go-logr/logr v1.4.4
 	github.com/oapi-codegen/runtime v1.7.0
 	github.com/onsi/ginkgo/v2 v2.33.0
