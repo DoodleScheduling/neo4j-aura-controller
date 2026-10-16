@@ -36,7 +36,7 @@ require (
 	github.com/fluxcd/pkg/apis/meta v1.32.0 // indirect
 	github.com/fsnotify/fsnotify v1.10.1 // indirect
 	github.com/fxamacker/cbor/v2 v2.9.3 // indirect
-	github.com/getkin/kin-openapi v0.144.0 // indirect
+	github.com/getkin/kin-openapi v0.149.0 // indirect
 	github.com/go-errors/errors v1.5.1 // indirect
 	github.com/go-logr/zapr v1.3.0 // indirect
 	github.com/go-openapi/jsonpointer v1.0.0 // indirect
@@ -79,7 +79,7 @@ require (
 	github.com/prometheus/common v0.71.0 // indirect
 	github.com/prometheus/procfs v0.22.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
-	github.com/santhosh-tekuri/jsonschema/v6 v6.0.2 // indirect
+	github.com/santhosh-tekuri/jsonschema/v6 v6.0.3 // indirect
 	github.com/speakeasy-api/jsonpath v0.6.3 // indirect
 	github.com/speakeasy-api/openapi v1.24.0 // indirect
 	github.com/spf13/cobra v1.10.2 // indirect
