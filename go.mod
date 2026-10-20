@@ -3,7 +3,7 @@ module github.com/doodlescheduling/neo4j-aura-controller
 go 1.27.0
 
 require (
-	github.com/fluxcd/pkg/runtime v0.119.0
+	github.com/fluxcd/pkg/runtime v0.120.0
 	github.com/go-logr/logr v1.4.4
 	github.com/oapi-codegen/runtime v1.7.0
 	github.com/onsi/ginkgo/v2 v2.33.1
@@ -33,7 +33,7 @@ require (
 	github.com/evanphx/json-patch/v5 v5.9.11 // indirect
 	github.com/exponent-io/jsonpath v0.0.0-20210407135951-1de76d718b3f // indirect
 	github.com/fluxcd/cli-utils v1.4.0 // indirect
-	github.com/fluxcd/pkg/apis/meta v1.35.0 // indirect
+	github.com/fluxcd/pkg/apis/meta v1.36.0 // indirect
 	github.com/fsnotify/fsnotify v1.10.1 // indirect
 	github.com/fxamacker/cbor/v2 v2.9.3 // indirect
 	github.com/getkin/kin-openapi v0.149.0 // indirect
