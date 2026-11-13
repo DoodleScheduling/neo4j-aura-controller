@@ -5,7 +5,7 @@ go 1.27.0
 require (
 	github.com/fluxcd/pkg/runtime v0.122.0
 	github.com/go-logr/logr v1.4.4
-	github.com/oapi-codegen/runtime v1.8.0
+	github.com/oapi-codegen/runtime v1.9.0
 	github.com/onsi/ginkgo/v2 v2.34.0
 	github.com/onsi/gomega v1.44.0
 	github.com/spf13/pflag v1.1.0
